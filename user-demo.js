@@ -9,17 +9,48 @@ let db = new Map()
 let id = 2
 
 // 임시 데이터
-let user = {
+let user1 = {
     userId: "haeun",
     password: "master",
     name: "하은"
 }
+db.set(1, user1)
 
-db.set(1, user)
+// functions
+function isExist(obj) {
+    return Object.keys(obj).length
+}
+
+function findUser(userId) {
+    let foundUser = {}
+    
+    db.forEach((user) => {
+        if(user.userId === userId) foundUser = user
+    })
+
+    return foundUser
+
+    // 또는 Object.values(db).find를 통해 쉽게 찾을 수 있음 (Object.find : 객체의 모든 속성 값을 배열로 반환)
+}
 
 // 회원 로그인 (post)
 app.post('/login', (req, res) => {
+    // userId와 pwd가 일치하는지 비교
+    const {userId, password} = req.body
+    let loginUser = findUser(userId)
 
+    if(isExist(loginUser) && loginUser.password === password){
+        res.status(201).json({
+            message: `${loginUser.name}님 환영합니다.`
+        })
+    }   
+    else {
+        res.status(400).json({
+            message: `아이디 또는 비밀번호가 틀렸습니다.`
+        }) 
+    }
+
+    
 })
 
 // 회원 가입 (post)
