@@ -1,48 +1,64 @@
 const express = require("express")
-const app = express()
-app.listen(1234)
-app.use(express.json())
+const router = express.Router()
+router.use(express.json())
 
 let db = new Map()
 let id = 1
 
 let channel1 = {
-    channelTitle: "tester1"
+    channelTitle: "tester1",
+    userId: "haeun"
 }
 
 db.set(id++, channel1)
 
+function notFoundId() {
+    res.status(404).send("해당하는 ID의 채널 정보가 없습니다.")
+}
 
-app
-    .route("/channels")
+
+router
+    .route("/")
     .get((req, res) => {
+        let {userId} = req.body
         let channels = []
         
-        if(db.size) {
-            db.forEach((value) => {
-                channels.push(value)
-            })
+        if(userId){
+            if(db.size) {
+                db.forEach((value) => {
+                    if(value.userId == userId){
+                        channels.push(value)
+                        findUser = true
+                    }
+                })
 
-            res.status(200).json(channels)
-        } else {
-            res.status(404).send("채널이 없습니다.")
+                if(channels.length){
+                    res.status(200).json(channels)
+                } else {
+                    res.status(404).send("user을 찾을 수 없습니다.")
+                }
+            } else {
+                notFoundId()
+            }
+        }
+        else {
+            res.status(404).send("로그인이 필요합니다.")
         }
     })
     
     .post((req, res) => {
-        let {channelTitle} = req.body
-
-        if(channelTitle){
-            db.set(id++, req.body)
-            res.status(201).send(`${channelTitle}님, 채널을 응원합니다!`)
+        if(req.body.channelTitle){
+            let channel = req.body
+            db.set(id++, channel)
+            res.status(201).send(`${req.body.channelTitle}님, 채널을 응원합니다!`)
         } else {
             res.status(400).send("채널명을 입력해주세요!")
         }
     })
     
 
-app
-    .route("/channels/:id")
+router
+    .route("/:id")
     .get((req, res) => {
         let {id} = req.params
         id = parseInt(id)
@@ -51,7 +67,7 @@ app
         if(channel) {
             res.status(200).json(channel)
         } else {
-            res.status(404).send("해당하는 ID의 채널 정보가 없습니다.")
+            notFoundId()
         }
     })
 
@@ -71,8 +87,8 @@ app
                 res.status(400).send("채널명을 입력해주세요.")
             }
         } else {
-                res.status(404).send("해당하는 ID의 채널 정보가 없습니다.")
-            }
+            notFoundId()
+        }
     })
 
     .delete((req, res) => {
@@ -84,8 +100,8 @@ app
             db.delete(id)
             res.status(200).send(`${channel.channelTitle}이 삭제 되었습니다.`)
         } else {
-            res.status(404).send("해당하는 ID의 채널 정보가 없습니다.")
+            notFoundId()
         }
     })
 
-    
+module.exports = router

@@ -1,12 +1,24 @@
 // express 모듈 세팅
 const express = require("express")
-const app = express()
-app.listen(1234)
-app.use(express.json())
+const router = express.Router()
+const conn = require('../mariadb')
+
+conn.query(
+    'SELECT * FROM `users`',
+    function (err, results, fields) {   // 각각 에러, 결과, 필드를 반환)
+        let {id, email, name, created_at} = results[0]
+        console.log(id); 
+        console.log(email); 
+        console.log(name); 
+        console.log(created_at); 
+        // console.log(fields); 
+    }
+);
+
+router.use(express.json())
 
 // db
 let db = new Map()
-let id = 2
 
 // 임시 데이터
 let user1 = {
@@ -14,7 +26,7 @@ let user1 = {
     password: "master",
     name: "하은"
 }
-db.set(1, user1)
+db.set(user1.userId, user1)
 
 // functions
 function isExist(obj) {
@@ -34,13 +46,13 @@ function findUser(userId) {
 }
 
 // 회원 로그인 (post)
-app.post('/login', (req, res) => {
+router.post('/login', (req, res) => {
     // userId와 pwd가 일치하는지 비교
     const {userId, password} = req.body
     let loginUser = findUser(userId)
 
     if(isExist(loginUser) && loginUser.password === password){
-        res.status(201).json({
+        res.status(200).json({
             message: `${loginUser.name}님 환영합니다.`
         })
     }   
@@ -54,12 +66,13 @@ app.post('/login', (req, res) => {
 })
 
 // 회원 가입 (post)
-app.post('/join', (req, res) => {
+router.post('/join', (req, res) => {
     let insertData = req.body
     if(insertData != {}) {
-        db.set(id, req.body)
+        const {userId} = req.body
+        db.set(userId, req.body)
         res.status(201).json({
-            message: `${db.get(id++).name}님 환영합니다.`
+            message: `${db.get(userId).name}님 환영합니다.`
         })
     }
     else {
@@ -70,14 +83,13 @@ app.post('/join', (req, res) => {
     
 }) 
 
-app
-    .route('/users/:id')
+router
+    .route('/users')
 
     // 회원 개별 조회 (get)
     .get((req, res) => {
-        let {id} = req.params
-        id = parseInt(id)
-        let userData = db.get(id)
+        let {userId} = req.body
+        let userData = db.get(userId)
         
         if(userData) {
             res.status(200).json({
@@ -93,13 +105,12 @@ app
 
     // 회원 탈퇴 (delete)
     .delete((req, res) => {
-        let {id} = req.params
-        id = parseInt(id)
-        let userData = db.get(id)
+        let {userId} = req.body
+        let userData = db.get(userId)
         
         if(userData) {
             let userName = userData.name
-            db.delete(id)        
+            db.delete(userId)        
             res.status(200).json({
                 message: `${userName}님, 다음에 또 뵙겠습니다.`
             })
@@ -109,3 +120,5 @@ app
             })
         }
     })
+
+module.exports = router
