@@ -7,6 +7,10 @@ function notFoundId(res) {
     res.status(404).send("해당하는 ID의 채널 정보가 없습니다.")
 }
 
+function stringToInt(req) {
+    let {id} = req
+    return parseInt(id)
+}
 
 router
     .route("/")
@@ -50,8 +54,7 @@ router
 router
     .route("/:id")
     .get((req, res) => {
-        let {id} = req.params
-        id = parseInt(id)
+        let id = stringToInt(req.params)
 
         let sql = `SELECT * FROM channels WHERE id = ? `
         conn.query(sql, id,
