@@ -15,10 +15,12 @@ function stringToInt(req) {
     return parseInt(id)
 }
 
-const validate = (req, res) => {
+function validate(req, res, next){
     const err = validationResult(req)
 
-    if(!err.isEmpty){
+    if(err.isEmpty()){
+        return next() // 다음 할 일 찾아가기
+    } else {
         return res.status(400).json(err.array())
     }
 }
@@ -30,14 +32,16 @@ router
             body('user_id').notEmpty().isInt().withMessage('숫자를 입력해주세요.'),
             validate
         ],
-        (req, res) => {
-            validate(req, res)
-
+        (req, res, next) => {
             let {user_id} = req.body
 
             let sql = `SELECT * FROM channels WHERE user_id = ? `
             conn.query(sql, user_id,
                 (err, results) => {
+                    if(err) {
+                        console.log(err)
+                        return res.status(400).end()
+                    }
                     if(results.length){
                         res.status(200).json(results)
                     } else {
@@ -48,14 +52,12 @@ router
     })
     
     .post(
-        [body('userId').notEmpty().isInt().withMessage('숫자를 입력해주세요.'),
-        body('name').notEmpty().isString().withMessage('문자를 입력해주세요.')],
+        [
+            body('userId').notEmpty().isInt().withMessage('숫자를 입력해주세요.'),
+            body('name').notEmpty().isString().withMessage('문자를 입력해주세요.'),
+            validate
+        ],
             (req, res) => {
-                const err = validationResult(req)
-
-                if(!err.isEmpty()) {
-                    return res.status(400).json(err.array())
-                }
                 const {name, userId} = req.body
                 
                 let sql = `INSERT INTO channels (name, user_id) VALUES (?, ?)`
@@ -73,44 +75,38 @@ router
 
 router
     .route("/:id")
-    .get( param().notEmpty().withMessage('채널 id 필요'),
+    .get( 
+        [
+            param().notEmpty().withMessage('채널 id 필요'),
+            validate
+        ],
         (req, res) => {
-        const err = validationResult(req)
-
-        if(!err.isEmpty()) {
-            return res.status(400).json(arr.array())
-        }
-
-        let id = stringToInt(req.params)
-
-        let sql = `SELECT * FROM channels WHERE id = ? `
-        conn.query(sql, id,
-            (err, results) => {
-                if(err){
-                    console.log(err)
-                    res.status(400).end()
-                } 
-                
-                if(results.length){
-                    res.status(200).json(results)
+            let {id} = req.params
+            let sql = `SELECT * FROM channels WHERE id = ? `
+            conn.query(sql, id,
+                (err, results) => {
+                    if(err){
+                        console.log(err)
+                        res.status(400).end()
+                    } 
+                    
+                    if(results.length){
+                        res.status(200).json(results)
+                    }
+                    else {
+                        notFoundId(res)
+                    }
                 }
-                else {
-                    notFoundId(res)
-                }
-            }
-        )
+            )
     })
 
-    .put([param('id').notEmpty().withMessage('채널 id 필요'),
-        body('name').notEmpty().isString().withMessage('채널명 오류'),
-    ],
+    .put(
+        [
+            param('id').notEmpty().withMessage('채널 id 필요'),
+            body('name').notEmpty().isString().withMessage('채널명 오류'),
+            validate
+        ],
         (req, res) => {
-        const err = validationResult(req)
-
-        if(!err.isEmpty()) {
-            return res.status(400).json(err.array())
-        }
-
         let {name} = req.body
         let {id} = req.params
         id = parseInt(id)
@@ -135,13 +131,12 @@ router
         )
     })
 
-    .delete(param('id').notEmpty().isInt().withMessage('채널 ID 필요'),
+    .delete(
+        [
+            param('id').notEmpty().isInt().withMessage('채널 ID 필요'),
+            validate
+        ],
         (req, res) => {
-        const err = validationResult(req)
-
-        if(!err.isEmpty()){
-            return res.status.json(err.array())
-        }
         let {id} = req.params
         id = parseInt(id)
         
